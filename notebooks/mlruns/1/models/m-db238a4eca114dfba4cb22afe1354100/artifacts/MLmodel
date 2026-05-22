@@ -1,0 +1,23 @@
+artifact_path: file:///c:/Users/hp/Documents/GitHub/sme-retail-ds-solution/notebooks/mlruns/1/models/m-db238a4eca114dfba4cb22afe1354100/artifacts
+flavors:
+  lightgbm:
+    code: null
+    data: model.pkl
+    lgb_version: 4.6.0
+    model_class: lightgbm.sklearn.LGBMRegressor
+    serialization_format: cloudpickle
+    skops_trusted_types: null
+  python_function:
+    data: model.pkl
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.lightgbm
+    python_version: 3.11.3
+mlflow_version: 3.12.0
+model_id: m-db238a4eca114dfba4cb22afe1354100
+model_size_bytes: 97087
+model_uuid: m-db238a4eca114dfba4cb22afe1354100
+prompts: null
+run_id: 6bf69bcb66354ce7b5a364db1cd12d27
+utc_time_created: '2026-05-22 10:14:56.118281'
