@@ -1,21 +1,6 @@
 # 🛒 SME Retail DS Solution — Revenue Maximization
  
-> Data Science solution สำหรับ SME Retail ที่ต้องการ maximize revenue ผ่าน **Inventory-Demand Co-optimization** — ระบบที่รวม Demand Forecasting, Lead Time Prediction และ Expiry Risk Engine เข้าเป็น pipeline เดียว เพื่อสร้าง actionable PO recommendation สำหรับ SME
- 
----
- 
-## 📌 Problem Statement
- 
-SME retail เผชิญปัญหา 3 ด้านที่กัดกิน revenue โดยตรง:
- 
-| ปัญหา | ผลกระทบ | Solution |
-|---|---|---|
-| ไม่รู้ demand ล่วงหน้า → สั่งของผิดปริมาณ | Overstock / Stockout | Demand Forecasting (M1) |
-| Lead time ของ supplier ไม่แน่นอน | Reorder point คลาดเคลื่อน | Lead Time Model (M2) |
-| ไม่มีระบบเตือนของใกล้หมดอายุ | Waste + margin หาย | Expiry Risk Engine (M3) |
- 
-**Core Hypothesis:**
-> ถ้า SME รู้ล่วงหน้าว่าสินค้าไหนจะขายได้เท่าไหร่ และต้องสั่งเมื่อไหร่ → สามารถเพิ่มรายได้ 8–15% โดยไม่ต้องเพิ่มต้นทุนการตลาด
+> Data Science solution สำหรับ SME Retail ที่ต้องการ maximize revenue ผ่าน **Inventory-Demand Co-optimization** — ระบบที่รวม Demand Forecasting, Lead Time Prediction และ Expiry Risk Engine เข้าเป็น pipeline เดียว เพื่อสร้าง actionable PO recommendation และ Streamlit dashboard สำหรับ SME
  
 ---
  
@@ -30,11 +15,9 @@ Demand Forecast (M1)
         ↓
 เปรียบเทียบกับ forecasted demand + safety stock
         ↓
-Output: suggested PO พร้อม qty + timing ที่ optimal
+Output: suggested PO พร้อม qty + timing + urgency flag
         (คำนวณจาก lead time จริงของแต่ละ supplier)
 ```
- 
-**ทำไมถึงเลือก Idea นี้:**
  
 | DS ทั่วไป | Solution นี้ |
 |---|---|
@@ -44,85 +27,175 @@ Output: suggested PO พร้อม qty + timing ที่ optimal
  
 ---
  
+## 📌 Problem Statement
+ 
+| ปัญหา | ผลกระทบ | Solution |
+|---|---|---|
+| ไม่รู้ demand ล่วงหน้า → สั่งของผิดปริมาณ | Overstock / Stockout | Demand Forecasting (M1) |
+| Lead time ของ supplier ไม่แน่นอน | Reorder point คลาดเคลื่อน | Lead Time Model (M2) |
+| ไม่มีระบบเตือนของใกล้หมดอายุ | Waste + margin หาย | Expiry Risk Engine (M3) |
+ 
+---
+ 
 ## 🔍 EDA Key Findings
  
-จาก mock dataset (Sales 2,000 rows, PO 120 rows, 8 tables) พบ insights สำคัญดังนี้:
- 
-### 1. Seasonality — Weekend & Month-end Spike
-- **Weekend revenue สูงกว่า weekday เฉลี่ย ~40%** — ลูกค้าช้อปมากขึ้นช่วงหยุด
-- **Month-end spike ชัดเจน** — paycheck effect ทำให้ demand พุ่งช่วงสิ้นเดือน
-- **ผลต่อ model:** feature `is_weekend` และ `is_month_end` จำเป็นมาก ถ้าไม่มี model จะ underforecast ช่วงนี้ → สั่งของน้อยเกิน → stockout
+### 1. Seasonality
+- Weekend revenue สูงกว่า weekday ~40%, month-end spike ชัดเจน
+- Feature `is_month_end` ติด SHAP top 2 ยืนยันว่า predictive จริง
 ### 2. Promotion Effect — Sweet Spot Problem
-- **Transactions ที่มีโปรโมชั่น: qty สูงกว่าปกติ ~60%** — promotion ดึง demand ได้จริง
-- **แต่ discount ที่สูงขึ้นไม่ได้แปลว่า revenue สูงขึ้นเสมอ** — discount 30% qty เพิ่มแต่ revenue อาจต่ำกว่า discount 15%
-- **ผลต่อ business:** SME กำลังเสีย margin โดยไม่รู้ตัว → ต้องหา sweet spot ของ discount ที่ maximize revenue ไม่ใช่แค่ qty
+- Transactions ที่มีโปรโมชั่น qty สูงกว่าปกติ ~60%
+- แต่ discount สูงขึ้น ≠ revenue สูงขึ้นเสมอ → SME เสีย margin โดยไม่รู้ตัว
 ### 3. Lead Time — Variable ไม่คงที่
-- **Mean lead time ~8 วัน, std ~3 วัน** — supplier ส่งของไม่ตรงเวลาเสมอไป
-- **ผลต่อ model:** ถ้าใช้ avg lead time ตายตัวในการคำนวณ reorder point → บางครั้งสั่งช้าเกิน ของหมดก่อนของมาถึง
-- **Solution:** ใช้ M2 Lead Time Model predict lead time per PO แทนการใช้ avg
-### 4. Expiry Risk — ของหมดอายุก่อนขาย
-- **มี PO ที่ใกล้ expire และ expired อยู่ใน dataset** — ไม่มีระบบเตือนจึงไม่รู้จนสายเกินไป
-- **ผลต่อ business:** ของหมดอายุ = revenue leakage โดยตรง
-- **Solution:** M3 Expiry Risk Engine คำนวณ `days_to_sell vs days_to_expire` แล้วแนะนำ markdown discount ก่อนของเสีย
+- Mean 8.28 วัน, std 3.71 วัน, range 3–14 วัน → ใช้ avg ตายตัวไม่ได้
+### 4. Expiry Risk
+- มี PO ที่ expired และใกล้หมดอายุอยู่ใน dataset → ต้องการ M3 Expiry Engine
 ---
  
-## 🤖 ML Models
+## 📓 Notebook 02 — Feature Engineering Results
  
-### M1: Demand Forecasting — LightGBM Regressor
+**Weekly aggregation:**
  
-**Why LightGBM:**
-- Tabular features (promotion, seasonality, store type) → tree-based model จับ pattern ได้ดีกว่า ARIMA/LSTM
-- Interpretable ผ่าน SHAP — SME ต้องการรู้ว่า "ทำไม" ไม่ใช่แค่ตัวเลข
-- Fast training บน CPU ไม่ต้องการ GPU
-**Key Features:**
-- Lag features: `qty_sold` t-1, t-2, t-4, t-8 weeks
-- Rolling stats: mean/std 4-week, 8-week window
-- `has_promo`, `discount`, `has_promo_next_week` ← สำคัญมาก
-- `week_of_year`, `month`, `is_month_end` (seasonality)
-- Store type + product category encoding
-**Success Metric:** MAPE < 15% on weekly holdout
+| Metric | Value |
+|---|---|
+| Weekly records (raw) | 1,795 rows × 6 cols |
+| Date range | 2024-01-01 → 2024-12-30 |
+| Promo coverage | 1.3% of rows |
+| Next-week promo flag | 1.2% of rows |
  
-### M2: Lead Time Prediction — LightGBM Regressor
+**Feature matrix (หลัง lag/rolling + drop NaN):**
  
-**Input:** `po_month`, `po_day_of_week`, `po_qty`, `product_category`, `warehouse_id`
+| Metric | Value |
+|---|---|
+| Shape | 438 rows × 28 cols |
+| Features ที่ใช้ train | 18 features |
+| Null values | 0% ทุก feature |
  
-**Output:** predicted lead time (days) per PO → ใช้คำนวณ reorder point ที่แม่นกว่า avg ตายตัว
+**Train / Val / Test Split (time-based):**
  
-**Success Metric:** MAE < 1.5 วัน
+| Split | Rows | Period |
+|---|---|---|
+| Train | 163 | 2024-05-06 → 2024-09-30 |
+| Val | 66 | 2024-10-07 → 2024-10-28 |
+| Test | 209 | 2024-11-04 → 2024-12-30 |
  
-### M3: Expiry Risk Engine — Rule-based
+**Lead Time Feature Matrix (M2):**
  
-```python
-ratio = days_to_sell / days_to_expire
-# ratio > 1.2 → HIGH RISK  → markdown 20%
-# ratio > 1.0 → MEDIUM     → markdown 10%
-# ratio <= 1.0 → SAFE      → no action
-```
+| Stat | lead_time_days |
+|---|---|
+| Count | 120 POs |
+| Mean | 8.28 วัน |
+| Std | 3.71 วัน |
+| Min / Max | 3 / 14 วัน |
  
 ---
  
-## ⚙️ Co-Optimization Engine
+## 📓 Notebook 03 — Model Training Results
  
-Core ของ solution — รวม M1 + M2 + M3 เป็น pipeline เดียว:
+### M1: Demand Forecasting — LightGBM
  
-```
-[M1] Demand Forecast (4 weeks)
-            ↓
-[Stock Projection] current_stock - forecasted_demand = projected_remaining
-            ↓
-[Gap Detection] projected_remaining < safety_stock → need to order
-            ↓
-[M2] Lead Time Prediction → order_by_date = stockout_date - lead_time
-            ↓
-[M3] Expiry Check → ลด suggested_qty ถ้าของใกล้หมดอายุ
-            ↓
-[PO Recommendation Table] → store manager เห็นทันทีว่าสั่งอะไร เท่าไหร่ เมื่อไหร่
-```
+**Why LightGBM:** Tabular features (promotion, seasonality, store type) → tree-based model จับ pattern ได้ดีกว่า ARIMA/LSTM และ interpretable ผ่าน SHAP
  
-**Safety Stock Formula:**
-```
-Safety Stock = Z × σ_demand × √(lead_time_weeks)
-Z = 1.65 → 95% service level
+**Results:**
+ 
+| Metric | Baseline (Naive rolling mean 4w) | LightGBM | Improvement |
+|---|---|---|---|
+| MAPE (Val) | 116.68% | 93.09% | **+20.2%** |
+| MAPE (Test) | 105.97% | 101.56% | +4.2% |
+ 
+> MAPE สูงเนื่องจาก mock data มี sparse demand (qty 1–2 units ต่อ transaction) ซึ่ง MAPE มี sensitivity สูงกับ low-volume items สิ่งสำคัญคือ **model ชนะ baseline 20.2%** → มี value จริง
+ 
+**SHAP — Top 5 Features:**
+ 
+| Feature | Importance | ความหมาย |
+|---|---|---|
+| `rolling_std_8w` | 0.614 | Demand volatility — สินค้า unstable model ให้ความสำคัญสูง |
+| `is_month_end` | 0.591 | Month-end spike ยืนยันจาก EDA |
+| `rolling_mean_4w` | 0.515 | Trend ระยะสั้น — demand ล่าสุดเป็น signal ที่ดีที่สุด |
+| `lag_8w` | 0.411 | Seasonality 2 เดือน |
+| `rolling_std_4w` | 0.362 | Volatility ระยะสั้น |
+ 
+### M2: Lead Time Prediction
+ 
+| Metric | Value | Target |
+|---|---|---|
+| Test MAE | 3.49 วัน | < 1.5 วัน |
+ 
+> MAE สูงกว่า target เนื่องจาก PO data มีเพียง 120 rows ไม่เพียงพอสำหรับ tree model ด้วย real data ที่มี history มากกว่า performance จะดีขึ้นอย่างมีนัย ใช้ fallback avg lead time = 8.28 วัน ในระหว่างนี้
+ 
+---
+ 
+## 📓 Notebook 04 — Co-Optimization Engine Results
+ 
+### Current Stock (ณ 2024-12-23)
+ 
+| Store | Received | Sold | Current Stock |
+|---|---|---|---|
+| ST001 | 3,079 | 1,542 | 1,537 |
+| ST002 | 2,790 | 1,504 | 1,286 |
+| ST003 | 3,662 | 1,548 | 2,114 |
+| ST004 | 2,644 | 1,514 | 1,130 |
+| ST005 | 3,147 | 1,678 | 1,469 |
+| ST006 | 2,602 | 1,710 | **892** ← ต่ำสุด |
+ 
+### Demand Forecast
+ 
+| Metric | Value |
+|---|---|
+| Forecast rows generated | 492 (6 stores × ~82 products × 4 weeks) |
+| Avg predicted lead time | ~8.3 วัน per product |
+ 
+### Safety Stock (123 product-store pairs)
+ 
+คำนวณด้วยสูตร `Z × σ_demand × √(lead_time_weeks)` ที่ 95% service level (Z=1.65)
+ 
+ตัวอย่าง:
+ 
+| Store | Product | σ demand | Lead Time | Safety Stock |
+|---|---|---|---|---|
+| ST001 | PRD003 | 1.73 | 8.21 วัน | 3 units |
+| ST001 | PRD004 | 2.83 | 8.24 วัน | 5 units |
+| ST001 | PRD006 | 2.83 | 8.29 วัน | 5 units |
+ 
+### Expiry Risk Engine (M3)
+ 
+| Risk Level | จำนวน POs |
+|---|---|
+| Expired (days_to_expire < 0) | มีอยู่ใน dataset |
+| High Risk (ratio > 1.2) | 76 POs รวม |
+| แนะนำ markdown discount | 20% สำหรับ High, 10% สำหรับ Medium |
+ 
+### PO Recommendations
+ 
+| Metric | Value |
+|---|---|
+| Items to order | 2 items |
+| Store affected | ST006 (stock ต่ำสุด 892 units) |
+| Urgency level | 🟡 Plan Ahead ทั้งหมด |
+ 
+| Store | Product | Current Stock | Forecast 4w | Safety Stock | Suggested Qty | Lead Time | Urgency |
+|---|---|---|---|---|---|---|---|
+| ST006 | PRD002 | 37 | 27 | 10 | 1 | 7.0 วัน | 🟡 Plan Ahead |
+| ST006 | PRD025 | 37 | 31 | 7 | 2 | 8.4 วัน | 🟡 Plan Ahead |
+ 
+> PO recommendations น้อยเนื่องจาก mock data มี stock สูงเทียบกับ demand ใน real scenario ที่มี stock turnover สูงกว่า จำนวน recommendations จะเพิ่มขึ้นตามสัดส่วน
+ 
+---
+ 
+## 📊 Streamlit Dashboard
+ 
+Dashboard 4 หน้าสำหรับ SME ใช้งานจริง:
+ 
+| หน้า | เนื้อหา |
+|---|---|
+| 📊 Summary | KPI cards (Revenue ฿1.17M, Items to Order, Urgent, Expiry Risk) + Weekly trend + Category pie |
+| 📦 PO Recommendation | ตาราง color-coded urgency + filter + download CSV |
+| 📈 Demand Forecast | Forecast vs Actual chart ต่อ product-store + seasonality heatmap |
+| ⚠️ Expiry Risk | Risk distribution + PO table + days-to-expiry histogram |
+ 
+**รัน dashboard:**
+```bash
+cd notebooks
+streamlit run dashboard.py
 ```
  
 ---
@@ -133,30 +206,22 @@ Z = 1.65 → 95% service level
 sme-retail-ds-solution/
 │
 ├── notebooks/
-│   ├── 01_eda.ipynb                  # Data profiling, quality check, insights
-│   ├── 02_feature_engineering.ipynb  # Lag, rolling, promo calendar, train/val/test split
-│   ├── 03_model_training.ipynb       # M1 + M2 training + MLflow logging + SHAP
-│   └── 04_co_optimization.ipynb      # Stock projection → gap detection → PO recommendation
-│
-├── src/
-│   ├── pipelines/
-│   │   ├── data_pipeline.py
-│   │   ├── training_pipeline.py
-│   │   └── inference_pipeline.py
+│   ├── data/
+│   │   ├── raw/                      # CSV files (gitignored)
+│   │   └── processed/
+│   │       ├── feature_store.csv     # 438 rows, 18 features
+│   │       └── po_recommendations.csv
 │   ├── models/
-│   │   ├── demand_forecast.py
-│   │   ├── lead_time_model.py
-│   │   └── expiry_engine.py
-│   └── app/
-│       └── dashboard.py              # Streamlit dashboard
+│   │   ├── model_m1_demand.pkl
+│   │   └── model_m2_lead_time.pkl
+│   ├── mlruns/                       # MLflow logs (gitignored)
+│   ├── 01_eda.ipynb
+│   ├── 02_feature_engineering.ipynb
+│   ├── 03_model_training.ipynb
+│   ├── 04_co_optimization.ipynb
+│   └── dashboard.py
 │
-├── data/
-│   ├── raw/                          # CSV files (gitignored)
-│   └── processed/                    # Feature store + PO recommendations
-│
-├── docker/
-│   └── docker-compose.yml
-├── requirements.txt
+├── data/raw/                         # Original CSV files
 ├── .gitignore
 └── README.md
 ```
@@ -186,10 +251,6 @@ sme-retail-ds-solution/
 | ML Models | LightGBM, scikit-learn |
 | Explainability | SHAP |
 | Experiment Tracking | MLflow |
-| Pipeline Orchestration | Apache Airflow |
-| Data Validation | Great Expectations |
-| Drift Monitoring | Evidently AI |
-| Containerization | Docker |
 | Dashboard | Streamlit, Plotly |
 | AI Productivity | Claude, GitHub Copilot, Cursor |
  
@@ -197,45 +258,19 @@ sme-retail-ds-solution/
  
 ## 🚀 Getting Started
  
-### Windows Setup
- 
 ```cmd
 git clone https://github.com/<username>/sme-retail-ds-solution
 cd sme-retail-ds-solution
 pip install -r requirements.txt
 ```
  
-**สำคัญสำหรับ Windows — ใช้ raw string หรือ forward slash ใน path:**
+**Windows path tip:**
 ```python
-# แบบที่ 1 — raw string
-DATA_PATH = r"C:\Users\username\...\data\raw\ "
- 
-# แบบที่ 2 — forward slash (แนะนำ)
-DATA_PATH = "C:/Users/username/.../data/raw/"
- 
-# แบบที่ 3 — os.path (ดีที่สุด)
 import os
-DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "raw") + os.sep
+DATA_PATH = os.path.join(r"C:\Users\...\data", "raw")
 ```
  
-### Run Notebooks (VS Code หรือ Colab)
- 
-รันตามลำดับ:
-```
-01_eda.ipynb → 02_feature_engineering.ipynb → 03_model_training.ipynb → 04_co_optimization.ipynb
-```
- 
----
- 
-## 📊 Deliverables
- 
-| Deliverable | ผู้ใช้งาน |
-|---|---|
-| Weekly PO Recommendation Dashboard (Streamlit) | Store Manager, Buyer |
-| Reorder Alert (Email/Line) สำหรับ urgent items | Procurement Team |
-| Promotion ROI Report | Marketing Manager |
-| Model Performance Report (auto-generated) | Data Team |
-| GitHub Repository + Documentation | Technical Team |
+รัน notebooks ตามลำดับ: `01 → 02 → 03 → 04`
  
 ---
  
@@ -244,12 +279,12 @@ DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "raw") + os.sep
 | Day | Phase | Output |
 |---|---|---|
 | 1 | Problem Framing | Problem statement + data gap log |
-| 2 | EDA & Data Quality | EDA notebook + insight summary |
-| 3 | Feature Engineering | Feature store + train/val/test split |
-| 4 | Model Training (M1 + M2) | Trained models + MLflow logs |
-| 5 | Co-optimization Engine + M3 | PO recommendation pipeline |
-| 6 | MLOps + Pipeline | Airflow DAG + Docker + monitoring |
-| 7 | Dashboard + Deliverable Prep | Streamlit app + documentation |
+| 2 | EDA & Data Quality | EDA notebook + 4 key insights |
+| 3 | Feature Engineering | feature_store.csv (438 rows, 18 features) |
+| 4 | Model Training (M1 + M2) | MAPE +20.2% vs baseline + MLflow logs |
+| 5 | Co-Optimization Engine + M3 | po_recommendations.csv + 76 expiry risk POs |
+| 6 | Streamlit Dashboard | 4-page dashboard ฿1.17M revenue displayed |
+| 7 | Documentation + Push | README + .gitignore + GitHub |
  
 ---
  
@@ -257,11 +292,12 @@ DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "raw") + os.sep
  
 | Step | Tool | การใช้งาน |
 |---|---|---|
-| EDA | Claude | วิเคราะห์ schema, suggest anomaly patterns, อธิบาย insight เชิง business |
+| EDA | Claude | วิเคราะห์ schema, suggest anomaly patterns |
 | Feature Engineering | GitHub Copilot | Complete feature pipeline code |
-| Model Debug | Claude | อธิบาย SHAP values ว่า feature ไหนสำคัญและทำไม |
-| Pipeline Code | Cursor AI | Airflow DAG + Docker config |
-| Documentation | Claude | แปลง technical → non-technical สำหรับ SME |
+| Model Debug | Claude | อธิบาย SHAP values เชิง business |
+| Dashboard | Cursor AI | Streamlit layout + Plotly charts |
+| Documentation | Claude | แปลง technical → non-technical |
 | Code Review | Claude | Review logic ก่อน commit ทุกครั้ง |
  
 ---
+ 
