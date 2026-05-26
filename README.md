@@ -156,6 +156,8 @@ Output: suggested PO พร้อม qty + timing + urgency flag
 | Train | 163 | 2024-05-06 → 2024-09-30 |
 | Val | 66 | 2024-10-07 → 2024-10-28 |
 | Test | 209 | 2024-11-04 → 2024-12-30 |
+
+**Time-based split** — แบ่ง train/val/test ตาม timeline ไม่ใช่ random เพราะถ้า random จะมีข้อมูลอนาคต leak เข้า train ทำให้ MAPE ดูดีแต่ใช้งานจริงพัง
  
 ---
  
