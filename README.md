@@ -1,4 +1,3 @@
-
 # 🛒 SME Retail DS Solution — Revenue Maximization
  
 > Data Science solution สำหรับ SME Retail ที่ต้องการ maximize revenue ผ่าน **Inventory-Demand Co-optimization** — ระบบที่รวม Demand Forecasting, Lead Time Prediction และ Expiry Risk Engine เข้าเป็น pipeline เดียว เพื่อสร้าง actionable PO recommendation และ Streamlit dashboard สำหรับ SME
@@ -152,6 +151,8 @@ Output: suggested PO พร้อม qty + timing + urgency flag
 > MAPE สูงเนื่องจาก mock data มี sparse demand (qty 1–2 units) — สิ่งสำคัญคือ model ชนะ baseline 20.2%
  
 **SHAP — Top 5 Features:**
+
+![SHAP Importance](notebooks/shap_importance.png)
  
 | Feature | Importance | ความหมาย |
 |---|---|---|
