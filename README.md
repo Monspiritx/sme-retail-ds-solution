@@ -216,6 +216,22 @@ cd notebooks
 streamlit run dashboard.py
 ```
  
+## ⚙️ MLOps Pipeline
+ 
+![MLOps Pipeline](notebooks/mlops_pipeline.png)
+ 
+Pipeline แบ่งเป็น 5 layers ตามลำดับ:
+ 
+**Data layer** — รับข้อมูลจาก 3 กลุ่มหลัก: Sales TX (2,000 rows), PO + Stock Movement (420 rows), และ Master data ทั้งหมดผ่าน Great Expectations ก่อนเข้า pipeline เพื่อเช็ค null, row count, และ schema
+ 
+**Feature layer** — aggregate sales เป็น weekly level แล้วสร้าง lag, rolling, และ promo features รวม 18 features บันทึกเป็น feature store (438 rows) ทุก experiment track ผ่าน MLflow
+ 
+**Model layer** — train 3 models แยกกัน: M1 LightGBM demand forecast (MAPE 93%, +20.2% vs baseline), M2 LightGBM lead time prediction (MAE 3.5d), และ M3 rule-based expiry risk engine (76 POs flagged) โดย Airflow DAG trigger retraining ถ้า model เก่าเกิน 35 วัน
+ 
+**Co-optimization engine** — core ของ solution รวม output จากทั้ง 3 models เข้าด้วยกัน: project stock 4 สัปดาห์, detect gap, คำนวณ safety stock และ generate PO recommendation พร้อม urgency flag โดย Evidently AI monitor data drift แบบ weekly
+ 
+**Serving layer** — output 3 ช่องทาง: Streamlit dashboard 4 หน้า, PO CSV สำหรับ download, และ Email/Line Notify สำหรับ urgent items เท่านั้น
+ 
 ---
  
 ## 📁 Project Structure
