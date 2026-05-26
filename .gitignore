@@ -34,4 +34,4 @@ venv/
 Thumbs.db
 
 # Output images (optional — ลบออกถ้าอยากเก็บ)
-notebooks/*.png
+# notebooks/*.png
