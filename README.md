@@ -128,6 +128,26 @@ Output: suggested PO พร้อม qty + timing + urgency flag
 | Shape | 438 rows × 28 cols |
 | Features ที่ใช้ train | 18 features |
 | Null values | 0% ทุก feature |
+
+หลัง drop rows ที่ lag ยังไม่มีข้อมูล (8 สัปดาห์แรกของแต่ละ group) เหลือ 438 rows พร้อม train โดย null เป็น 0% ทุก feature
+
+**Features ที่ได้ทั้งหมด (18 features):**
+
+| กลุ่ม | Feature | มาจาก | ทำไมถึงสำคัญ |
+|---|---|---|---|
+| Lag | `lag_1w`, `lag_2w`, `lag_4w`, `lag_8w` | Sales TX | demand สัปดาห์ก่อนหน้า บอก autocorrelation |
+| Rolling | `rolling_mean_4w`, `rolling_mean_8w` | Sales TX | trend ระยะสั้นและกลาง |
+| Rolling | `rolling_std_4w`, `rolling_std_8w` | Sales TX | demand volatility — **SHAP top 1** |
+| Promotion | `has_promo` | Promotion Master | สัปดาห์นี้มีโปรไหม |
+| Promotion | `discount` | Promotion Master | ลดกี่เปอร์เซ็นต์ |
+| Promotion | `has_promo_next_week` | Promotion Master | สัปดาห์หน้ามีโปรไหม → ต้องสั่งของเพิ่ม |
+| Temporal | `week_of_year` | datetime | seasonality รายสัปดาห์ |
+| Temporal | `month` | datetime | seasonality รายเดือน |
+| Temporal | `quarter` | datetime | seasonality รายไตรมาส |
+| Temporal | `is_month_end` | datetime | month-end spike — **SHAP top 2** |
+| Context | `product_cat_enc` | Product Master | แต่ละ category มี demand pattern ต่างกัน |
+| Context | `store_type_enc` | Store Master | แต่ละ store type ขายต่างกัน |
+| Context | `price_vs_category` | Product Master | price elasticity proxy |
  
 **Train / Val / Test Split (time-based):**
  
@@ -215,6 +235,38 @@ streamlit run dashboard.py
 ```
  
 ---
+
+### หน้า 1 — Weekly Intelligence Summary
+
+![Dashboard Summary](notebooks/dashboard_summary.png)
+
+หน้า overview สำหรับผู้บริหารดูทุกเช้าวันจันทร์ แสดง KPI 4 ตัวที่สำคัญที่สุด: total revenue YTD (฿1,178,794), จำนวน items ที่ต้องสั่งสัปดาห์นี้ (2 items), urgent orders ที่ต้องสั่งวันนี้ (0), และ POs ที่เสี่ยงหมดอายุภายใน 30 วัน (37) ด้านล่างมี weekly revenue trend ตลอดปีและ revenue breakdown รายหมวดสินค้า
+
+---
+
+### หน้า 2 — Weekly PO Recommendation
+
+![Dashboard PO](notebooks/dashboard_po.png)
+
+output หลักของทั้ง solution แสดงตารางสินค้าที่ต้องสั่งสัปดาห์นี้ พร้อม current stock, forecast 4 สัปดาห์, safety stock, จำนวนที่แนะนำให้สั่ง, lead time, และ urgency flag color-coded ผู้ใช้งาน filter ตาม urgency ได้และ download เป็น CSV ส่งต่อทีม procurement ได้เลย — ไม่ต้องแปลผล model เอง
+
+---
+
+### หน้า 3 — Demand Forecast
+
+![Dashboard Forecast](notebooks/dashboard_forecast.png)
+
+เลือก product และสาขาแล้วดูกราฟ historical sales พร้อม forecast 4 สัปดาห์ข้างหน้า (zone สีเหลือง) เห็นได้ชัดว่า model จับ trend direction ได้ถูก แม้จะ underestimate ช่วง spike เพราะ training data น้อย มี seasonality heatmap ด้านล่างแสดง revenue pattern ตาม day of week และ month
+
+---
+
+### หน้า 4 — Expiry Risk Monitor
+
+![Dashboard Expiry](notebooks/dashboard_expiry.png)
+
+![Dashboard Expiry Table](notebooks/dashboard_expiry_table.png)
+
+แสดง POs ที่เสี่ยงหมดอายุก่อนขายหมด แบ่งเป็น 4 ระดับ: Expired (33), High Risk (43), Medium Risk (8), Safe (36) ตารางด้านล่าง filter เฉพาะ Expired และ High เพื่อให้ทีมดำเนินการก่อน พร้อม recommended discount ที่คำนวณจาก `days_to_sell vs days_to_expire` และ download report เป็น CSV ได้"""
  
 ## ⚙️ MLOps Pipeline
  

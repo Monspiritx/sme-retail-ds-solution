@@ -17,6 +17,7 @@ x-airflow-common: &airflow-common
   volumes:
     - ./notebooks/dags:/opt/airflow/dags
     - ./notebooks:/opt/airflow/notebooks
+    - ./notebooks/data:/opt/airflow/notebooks/data 
     - ./logs:/opt/airflow/logs
   depends_on:
     postgres:
