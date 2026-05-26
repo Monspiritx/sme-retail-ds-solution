@@ -151,8 +151,6 @@ Output: suggested PO พร้อม qty + timing + urgency flag
 > MAPE สูงเนื่องจาก mock data มี sparse demand (qty 1–2 units) — สิ่งสำคัญคือ model ชนะ baseline 20.2%
  
 **SHAP — Top 5 Features:**
-
-![SHAP Importance](notebooks/shap_importance.png)
  
 | Feature | Importance | ความหมาย |
 |---|---|---|
@@ -216,9 +214,11 @@ cd notebooks
 streamlit run dashboard.py
 ```
  
+---
+ 
 ## ⚙️ MLOps Pipeline
-
-![Pipelines](notebooks/mlops_pipeline.png)
+ 
+![MLOps Pipeline](notebooks/mlops_pipeline.png)
  
 Pipeline แบ่งเป็น 5 layers ตามลำดับ:
  
