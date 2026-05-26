@@ -290,33 +290,64 @@ Pipeline แบ่งเป็น 5 layers ตามลำดับ:
  
 ```
 sme-retail-ds-solution/
+│
 ├── notebooks/
 │   ├── data/
-│   │   ├── raw/                      # CSV files (gitignored)
+│   │   ├── raw/                        # CSV files (gitignored)
 │   │   └── processed/
 │   │       ├── feature_store.csv
 │   │       └── po_recommendations.csv
 │   ├── models/
 │   │   ├── model_m1_demand.pkl
 │   │   └── model_m2_lead_time.pkl
+│   ├── dags/
+│   │   └── weekly_forecast_dag.py      # Airflow DAG — รันทุกอาทิตย์ 23:00
+│   ├── mlruns/                         # MLflow experiment logs (gitignored)
 │   ├── 01_eda.ipynb
 │   ├── 02_feature_engineering.ipynb
 │   ├── 03_model_training.ipynb
 │   ├── 04_co_optimization.ipynb
-│   ├── eda_weekly_revenue.png
-│   ├── eda_seasonality.png
-│   ├── eda_category_revenue.png
-│   ├── eda_promo_effect.png
-│   ├── eda_lead_time.png
-│   ├── eda_expiry_risk.png
+│   ├── inference_pipeline.py           # Batch inference script
+│   ├── dashboard.py                    # Streamlit dashboard
+│   ├── mlops_pipeline.png
 │   ├── shap_importance.png
 │   ├── forecast_vs_actual.png
-│   └── dashboard.py
+│   └── eda_*.png
+│
+├── docker-compose.yml                  # Airflow + PostgreSQL
+├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
  
 ---
+
+## 🐳 Docker Setup (Airflow)
+
+Pipeline orchestration ใช้ Airflow รันผ่าน Docker ไม่ต้อง install ลงเครื่องโดยตรง
+
+```cmd
+# ครั้งแรก — init database และ create user
+docker-compose up airflow-init
+
+# รัน Airflow
+docker-compose up -d
+
+# เปิด Airflow UI
+# http://localhost:8080
+# user: airflow / pass: airflow
+```
+
+DAG `weekly_forecast_pipeline` จะขึ้นใน UI อัตโนมัติ schedule รันทุกวันอาทิตย์ 23:00 หรือ trigger manual ได้เลย
+
+**Services ที่รันใน Docker:**
+
+| Service | Port | หน้าที่ |
+|---|---|---|
+| airflow-webserver | 8080 | UI สำหรับ monitor DAG |
+| airflow-scheduler | — | trigger task ตาม schedule |
+| postgres | 5432 | Airflow metadata database |"""
+
  
 ## 🗃️ Data Schema (8 Tables)
  
