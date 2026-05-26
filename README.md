@@ -218,7 +218,7 @@ streamlit run dashboard.py
  
 ## ⚙️ MLOps Pipeline
  
-![MLOps Pipeline](notebooks/mlops_pipeline.png)
+![MLOps Pipeline](notebooks\mlops_pipeline.png)
  
 Pipeline แบ่งเป็น 5 layers ตามลำดับ:
  
