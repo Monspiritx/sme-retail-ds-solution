@@ -50,7 +50,7 @@ Output: suggested PO พร้อม qty + timing + urgency flag
 - **data รองรับได้จริง** ไม่ต้อง assume อะไรเพิ่ม
 - **business impact วัดได้ชัด** — SME เสียเงินจาก stockout และ waste โดยตรง
 - **output เป็น action** — SME ต้องการรู้ว่า "สั่งอะไร เท่าไหร่ เมื่อไหร่" ไม่ใช่แค่ "demand น่าจะเพิ่มขึ้น"
-- **ครอบทั้ง supply และ demand side** ในเวลาเดียวกัน"""
+- **ครอบทั้ง supply และ demand side** ในเวลาเดียวกัน
  
 ## 🔍 EDA Key Findings
  
