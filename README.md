@@ -36,6 +36,21 @@ Output: suggested PO พร้อม qty + timing + urgency flag
 | ไม่มีระบบเตือนของใกล้หมดอายุ | Waste + margin หาย | Expiry Risk Engine (M3) |
  
 ---
+
+### ทำไมถึงเลือก solution นี้
+
+ก่อน EDA คิดถึง 3 ทางหลัก:
+
+**Customer Segmentation + Promotion** — ใช้ `customer_taxonomies` ทำ RFM แล้ว target โปรโมชั่น ดูน่าสนใจแต่ customer data มีแค่ ID กับ segment label ไม่มี behavior จริงๆ และยังไม่รู้ว่า promotion signal ใน data แข็งพอไหม
+
+**Promotion Uplift Modeling** — ใช้ causal ML หา incremental revenue จากโปรโมชั่น เป็น idea ที่ sophisticated แต่ก่อน commit ดู data คร่าวๆ พบว่า promotion master มีแค่ 12 rows และ coverage ใน sales น้อยมาก ถ้า signal น้อยเกินไป uplift model จะ unreliable และ confidence interval กว้างจนไม่มีประโยชน์จริงๆ
+
+**Inventory-Demand Co-optimization (เลือก)** — ดู PO data แล้วเจอ `expire_date`, `arrival_date`, `po_date` ครบ บวกกับ stock movement และ sales ที่บอก demand pattern เหตุผลที่เลือก:
+
+- **data รองรับได้จริง** ไม่ต้อง assume อะไรเพิ่ม
+- **business impact วัดได้ชัด** — SME เสียเงินจาก stockout และ waste โดยตรง
+- **output เป็น action** — SME ต้องการรู้ว่า "สั่งอะไร เท่าไหร่ เมื่อไหร่" ไม่ใช่แค่ "demand น่าจะเพิ่มขึ้น"
+- **ครอบทั้ง supply และ demand side** ในเวลาเดียวกัน"""
  
 ## 🔍 EDA Key Findings
  
@@ -162,6 +177,17 @@ Output: suggested PO พร้อม qty + timing + urgency flag
 ---
  
 ## 📓 Notebook 03 — Model Training Results
+
+### ทำไมถึงเลือก LightGBM ไม่ใช่ ARIMA, LSTM, หรือ Prophet
+
+ก่อนเลือก model ต้องตอบก่อนว่า problem นี้มีลักษณะยังไง: มี feature หลายมิติ (promotion, store type, seasonality, price) ไม่ใช่แค่ time series อย่างเดียว และ data ต่อ product-store pair มีแค่ ~50 weeks
+
+| Model | ทำไมไม่เลือก |
+|---|---|
+| **ARIMA** | univariate — จับได้แค่ pattern ของ time series ไม่สามารถใส่ promotion flag หรือ store type เป็น feature ได้ และ sensitive กับ non-stationarity มาก |
+| **Prophet** | ดีสำหรับ long-term trend + seasonality แต่ใส่ external features ได้จำกัด และต้องการ data ยาวกว่านี้เพื่อให้ seasonal component reliable |
+| **LSTM** | ต้องการ data มากกว่านี้มากสำหรับ time series ต่อ product-store pair และ black box — SME ต้องการรู้ว่า "ทำไม" ไม่ใช่แค่ตัวเลข นอกจากนี้ยังต้องการ GPU และ training นาน |
+| **LightGBM (เลือก)** | tabular features (promotion, seasonality, store type) คือ strength ของ tree-based model, interpretable ผ่าน SHAP, fast training บน CPU, robust กับ noisy data, และ SHAP ยืนยันภายหลังว่า feature ที่ engineer มา (`rolling_std_8w`, `is_month_end`) มี impact จริง |
  
 ### M1: Demand Forecasting — LightGBM
  
