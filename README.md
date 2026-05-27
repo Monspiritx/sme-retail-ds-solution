@@ -19,7 +19,7 @@ Output: suggested PO พร้อม qty + timing + urgency flag
         (คำนวณจาก lead time จริงของแต่ละ supplier)
 ```
  
-| DS ทั่วไป | Solution นี้ |
+| ทั่วไป | Solution นี้ |
 |---|---|
 | "คาดว่าสัปดาห์หน้าขายได้ 70 ลัง" | "สั่ง 30 ลังภายในวันพุธ เพราะ lead time 3 วัน และมีโปรฯ วันศุกร์" |
 | Output คือ insight | Output คือ decision |
