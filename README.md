@@ -426,13 +426,11 @@ streamlit run dashboard.py
  
 | Day | Phase | Output |
 |---|---|---|
-| 1 | Problem Framing | Problem statement + solution design |
-| 2 | EDA | 6 plots + 4 key insights |
-| 3 | Feature Engineering | feature_store.csv (438 rows, 18 features) |
-| 4 | Model Training | MAPE +20.2% vs baseline + MLflow logs |
-| 5 | Co-Optimization Engine | po_recommendations.csv + 76 expiry risk POs |
-| 6 | Dashboard | 4-page Streamlit app |
-| 7 | Documentation | README + .gitignore + GitHub |
+| 1 | Business understanding + Planing | Problem statement + solution design |
+| 2 | EDA, Feature Engineering, Model Training | 6 plots + 4 key insights, feature_store.csv (438 rows, 18 features), MAPE +20.2% vs baseline + MLflow logs |
+| 3 | Co-Optimization Engine, Dashboard | po_recommendations.csv + 76 expiry risk POs, 4-page Streamlit app |
+| 4 | Docker pipeline | Airflow DAG |
+| 5 | Documentation | README + .gitignore + GitHub |
  
 ---
  
